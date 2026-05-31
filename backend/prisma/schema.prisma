@@ -1,0 +1,87 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  BUYER
+  OWNER
+  AGENT
+}
+
+enum PropertyType {
+  APARTMENT
+  HOUSE
+  VILLA
+  PLOT
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  password      String
+  name          String
+  role          UserRole       @default(BUYER)
+  properties    Property[]     @relation("OwnerProperties")
+  inquiries     Inquiry[]
+  refreshTokens RefreshToken[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Property {
+  id          String       @id @default(uuid())
+  title       String
+  description String
+  price       Float
+  type        PropertyType
+  bedrooms    Int
+  bathrooms   Int
+  area        Float        // area in sqft
+  city        String
+  location    String       // detailed address / neighborhood
+  images      String[]     // array of image URLs
+  ownerId     String
+  owner       User         @relation("OwnerProperties", fields: [ownerId], references: [id], onDelete: Cascade)
+  inquiries   Inquiry[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([city])
+  @@index([price])
+  @@index([type])
+  @@index([bedrooms])
+  @@index([createdAt])
+}
+
+model Inquiry {
+  id         String   @id @default(uuid())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  buyerId    String?
+  buyer      User?    @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  name       String
+  email      String
+  phone      String
+  message    String
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([propertyId])
+  @@index([email, propertyId])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
